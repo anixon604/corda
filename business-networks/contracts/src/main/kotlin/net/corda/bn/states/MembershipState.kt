@@ -8,13 +8,20 @@ import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 
 @BelongsToContract(MembershipContract::class)
-data class MembershipState<I, R>(
-        val identity: Pair<Party, I>,
+data class MembershipState<out I : Any, out R : Any>(
+        val identity: MembershipIdentity<I>,
         val networkId: String,
         val status: MembershipStatus,
         val role: R,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),
         override val participants: List<AbstractParty>
-) : LinearState
+) : LinearState {
+    fun isPending() = status == MembershipStatus.PENDING
+    fun isActive() = status == MembershipStatus.ACTIVE
+    fun isSuspended() = status == MembershipStatus.SUSPENDED
+    fun isRevoked() = status == MembershipStatus.REVOKED
+}
+
+data class MembershipIdentity<out I : Any>(val cordaIdentity: Party, val additionalIdentity: I)
 
 enum class MembershipStatus { PENDING, ACTIVE, SUSPENDED, REVOKED }

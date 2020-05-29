@@ -8,7 +8,7 @@ import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 
 @BelongsToContract(RelationshipContract::class)
-class RelationshipState<T>(
+class RelationshipState<T : Any>(
         val membershipId: UniqueIdentifier,
         val groups: Map<String, Group<T>>,
         override val participants: List<AbstractParty>
