@@ -12,7 +12,7 @@ data class MembershipState<out I : Any, out R : Any>(
         val identity: MembershipIdentity<I>,
         val networkId: String,
         val status: MembershipStatus,
-        val role: R,
+        val role: R? = null,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),
         override val participants: List<AbstractParty>
 ) : LinearState {
@@ -22,6 +22,6 @@ data class MembershipState<out I : Any, out R : Any>(
     fun isRevoked() = status == MembershipStatus.REVOKED
 }
 
-data class MembershipIdentity<out I : Any>(val cordaIdentity: Party, val additionalIdentity: I)
+data class MembershipIdentity<out I : Any>(val cordaIdentity: Party, val additionalIdentity: I? = null)
 
 enum class MembershipStatus { PENDING, ACTIVE, SUSPENDED, REVOKED }
