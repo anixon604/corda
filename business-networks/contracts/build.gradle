@@ -3,6 +3,7 @@ apply plugin: 'net.corda.plugins.publish-utils'
 apply plugin: 'net.corda.plugins.quasar-utils'
 apply plugin: 'net.corda.plugins.cordapp'
 apply plugin: 'com.jfrog.artifactory'
+apply plugin: 'kotlin-jpa'
 
 description 'Corda Business Networks'
 
