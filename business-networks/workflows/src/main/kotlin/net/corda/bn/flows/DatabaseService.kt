@@ -16,18 +16,18 @@ import net.corda.core.serialization.SingletonSerializeAsToken
 @CordaService
 class DatabaseService(private val serviceHub: ServiceHub) : SingletonSerializeAsToken() {
 
-    fun getMembership(networkId: String, party: Party): StateAndRef<MembershipState<*, *>>? {
+    fun getMembership(networkId: String, party: Party): StateAndRef<MembershipState>? {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(networkIdCriteria(networkId))
                 .and(identityCriteria(party))
-        val states = serviceHub.vaultService.queryBy<MembershipState<*, *>>(criteria).states
+        val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
         return states.maxBy { it.state.data.modified }
     }
 
-    fun getMembership(linearId: UniqueIdentifier): StateAndRef<MembershipState<*, *>>? {
+    fun getMembership(linearId: UniqueIdentifier): StateAndRef<MembershipState>? {
         val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
                 .and(linearIdCriteria(linearId))
-        val states = serviceHub.vaultService.queryBy<MembershipState<*, *>>(criteria).states
+        val states = serviceHub.vaultService.queryBy<MembershipState>(criteria).states
         return states.maxBy { it.state.data.modified }
     }
 

@@ -22,41 +22,41 @@ open class MembershipContract : Contract {
         class Activate : Commands()
         class Suspend : Commands()
         class Revoke : Commands()
-        class AmendIdentity : Commands()
-        class ModifyRole : Commands()
     }
 
     override fun verify(tx: LedgerTransaction) {
         val command = tx.commands.requireSingleCommand<Commands>()
         val output = tx.outputs.single()
-        val outputState = output.data as MembershipState<*, *>
+        val outputState = output.data as MembershipState
 
         requireThat {
             "Output state has to be validated by ${contractName()}" using (output.contract == contractName())
+            "Modified timestamp should be greater or equal to issued timestamp" using (outputState.issued <= outputState.modified)
             if (tx.inputStates.isNotEmpty()) {
                 val input = tx.inputs.single()
-                val inputState = input.state.data as MembershipState<*, *>
+                val inputState = input.state.data as MembershipState
                 "Input state has to be validated by ${contractName()}" using (input.state.contract == contractName())
-                "Input and output state should have same Corda identity" using (inputState.identity.cordaIdentity == outputState.identity.cordaIdentity)
+                "Input and output state should have same Corda identity" using (inputState.identity == outputState.identity)
                 "Input and output state should have same network IDs" using (inputState.networkId == outputState.networkId)
+                "Input and output state should habe same issued timestamps" using (inputState.issued == outputState.issued)
+                "Output state's modified timestamp should be greater than input's" using (inputState.modified < outputState.modified)
+                "Modified timestamp should be greater or equal to issued timestamp" using (inputState.issued <= inputState.modified)
                 "Input and output state should have same linear IDs" using (inputState.linearId == outputState.linearId)
             }
         }
 
         when (command.value) {
             is Commands.Request -> verifyRequest(tx, command, outputState)
-            is Commands.Activate -> verifyActivate(tx, command, tx.inputsOfType<MembershipState<*, *>>().single(), outputState)
-            is Commands.Suspend -> verifySuspend(tx, command, tx.inputsOfType<MembershipState<*, *>>().single(), outputState)
-            is Commands.Revoke -> verifyRevoke(tx, command, tx.inputsOfType<MembershipState<*, *>>().single(), outputState)
-            is Commands.AmendIdentity -> verifyAmendIdentity(tx, command, tx.inputsOfType<MembershipState<*, *>>().single(), outputState)
-            is Commands.ModifyRole -> verifyModifyRole(tx, command, tx.inputsOfType<MembershipState<*, *>>().single(), outputState)
+            is Commands.Activate -> verifyActivate(tx, command, tx.inputsOfType<MembershipState>().single(), outputState)
+            is Commands.Suspend -> verifySuspend(tx, command, tx.inputsOfType<MembershipState>().single(), outputState)
+            is Commands.Revoke -> verifyRevoke(tx, command, tx.inputsOfType<MembershipState>().single(), outputState)
             else -> throw IllegalArgumentException("Unsupported command ${command.value}")
         }
     }
 
     open fun contractName() = CONTRACT_NAME
 
-    open fun verifyRequest(tx: LedgerTransaction, command: CommandWithParties<Commands>, outputMembership: MembershipState<*, *>) = requireThat {
+    open fun verifyRequest(tx: LedgerTransaction, command: CommandWithParties<Commands>, outputMembership: MembershipState) = requireThat {
         "Membership request transaction shouldn't contain any inputs" using (tx.inputs.isEmpty())
         "Membership request transaction should contain output state in PENDING status" using (outputMembership.isPending())
     }
@@ -64,8 +64,8 @@ open class MembershipContract : Contract {
     open fun verifyActivate(
             tx: LedgerTransaction,
             command: CommandWithParties<Commands>,
-            inputMembership: MembershipState<*, *>,
-            outputMembership: MembershipState<*, *>
+            inputMembership: MembershipState,
+            outputMembership: MembershipState
     ) = requireThat {
         "Input state of membership activation transaction shouldn't be already active" using (!inputMembership.isActive())
         "Input state of membership activation transaction shouldn't be revoked" using (!inputMembership.isRevoked())
@@ -77,8 +77,8 @@ open class MembershipContract : Contract {
     open fun verifySuspend(
             tx: LedgerTransaction,
             command: CommandWithParties<Commands>,
-            inputMembership: MembershipState<*, *>,
-            outputMembership: MembershipState<*, *>
+            inputMembership: MembershipState,
+            outputMembership: MembershipState
     ) = requireThat {
         "Input state of membership suspension transaction shouldn't be already suspended" using (!inputMembership.isSuspended())
         "Input state of membership suspension transaction shouldn't be revoked" using (!inputMembership.isRevoked())
@@ -90,40 +90,12 @@ open class MembershipContract : Contract {
     open fun verifyRevoke(
             tx: LedgerTransaction,
             command: CommandWithParties<Commands>,
-            inputMembership: MembershipState<*, *>,
-            outputMembership: MembershipState<*, *>
+            inputMembership: MembershipState,
+            outputMembership: MembershipState
     ) = requireThat {
         "Input state of membership revocation transaction shouldn't be already revoked" using (!inputMembership.isRevoked())
         "Output state of membership revocation transaction should be revoked" using (outputMembership.isRevoked())
         "Input and output state of membership revocation transaction should only have different status field" using (
                 inputMembership.copy(status = MembershipStatus.REVOKED) == outputMembership)
-    }
-
-    open fun verifyAmendIdentity(
-            tx: LedgerTransaction,
-            command: CommandWithParties<Commands>,
-            inputMembership: MembershipState<*, *>,
-            outputMembership: MembershipState<*, *>
-    ) = requireThat {
-        "Both input and output state of membership amendment transaction should be active" using (inputMembership.isActive() && outputMembership.isActive())
-        "Input and output state of membership identity amendment transaction should have different additional identity" using (
-                inputMembership.identity.additionalIdentity != outputMembership.identity.additionalIdentity)
-        "Input and output state's additional identity field should be of same type" using (
-                inputMembership.identity.additionalIdentity.javaClass == outputMembership.identity.additionalIdentity.javaClass)
-        "Input and output state of membership identity amendment transaction should only have different identity field" using (
-                inputMembership.copy(identity = outputMembership.identity) == outputMembership)
-    }
-
-    open fun verifyModifyRole(
-            tx: LedgerTransaction,
-            command: CommandWithParties<Commands>,
-            inputMembership: MembershipState<*, *>,
-            outputMembership: MembershipState<*, *>
-    ) = requireThat {
-        "Both input and output state of role modification transaction should be active" using (inputMembership.isActive() && outputMembership.isActive())
-        "Input and output state of role modification transaction should habe different role" using (inputMembership.role != outputMembership.role)
-        "Input and output state's role field should be of same type" using (inputMembership.role.javaClass == outputMembership.role.javaClass)
-        "Input and output state of role modification amendment transaction should only have different role field" using (
-                inputMembership.copy(role = outputMembership.role) == outputMembership)
     }
 }

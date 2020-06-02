@@ -21,7 +21,7 @@ import net.corda.core.utilities.unwrap
 
 @InitiatingFlow
 @StartableByRPC
-class RevokeMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
+class RevokeMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
 
     @Suspendable
     override fun call(): SignedTransaction {
@@ -33,7 +33,7 @@ class RevokeMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Signe
         // building transaction
         val builder = TransactionBuilder()
                 .addInputState(membership)
-                .addOutputState(membership.state.data.copy(status = MembershipStatus.REVOKED))
+                .addOutputState(membership.state.data.copy(status = MembershipStatus.REVOKED, modified = serviceHub.clock.instant()))
                 .addCommand(MembershipContract.Commands.Revoke(), signers.map { it.owningKey })
         builder.verify(serviceHub)
 

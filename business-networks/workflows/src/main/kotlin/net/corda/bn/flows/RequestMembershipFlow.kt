@@ -2,7 +2,6 @@ package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
-import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.CollectSignaturesFlow
@@ -22,7 +21,7 @@ import net.corda.core.utilities.unwrap
 
 @InitiatingFlow
 @StartableByRPC
-class RequestMembershipFlow(val authorisedParty: Party, val networkId: String) : FlowLogic<SignedTransaction>() {
+class RequestMembershipFlow(private val authorisedParty: Party, private val networkId: String) : FlowLogic<SignedTransaction>() {
 
     @Suspendable
     override fun call(): SignedTransaction {
@@ -38,8 +37,8 @@ class RequestMembershipFlow(val authorisedParty: Party, val networkId: String) :
                     throw FlowException("Only Request command is allowed")
                 }
 
-                val membershipState = stx.tx.outputs.single().data as MembershipState<*, *>
-                if (ourIdentity != membershipState.identity.cordaIdentity) {
+                val membershipState = stx.tx.outputs.single().data as MembershipState
+                if (ourIdentity != membershipState.identity) {
                     throw IllegalArgumentException("We have to be the member")
                 }
 
@@ -55,7 +54,7 @@ class RequestMembershipFlow(val authorisedParty: Party, val networkId: String) :
 
 @InitiatingFlow
 @InitiatedBy(RequestMembershipFlow::class)
-class RequestMembershipFlowResponder(val session: FlowSession) : FlowLogic<Unit>() {
+class RequestMembershipFlowResponder(private val session: FlowSession) : FlowLogic<Unit>() {
 
     @Suspendable
     override fun call() {
@@ -67,8 +66,8 @@ class RequestMembershipFlowResponder(val session: FlowSession) : FlowLogic<Unit>
         }
 
         // building transaction
-        val membershipState = MembershipState<Any, Any>(
-                identity = MembershipIdentity(counterparty, null),
+        val membershipState = MembershipState(
+                identity = counterparty,
                 networkId = networkId,
                 status = MembershipStatus.PENDING,
                 participants = listOf()

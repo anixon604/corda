@@ -2,7 +2,6 @@ package net.corda.bn.flows
 
 import co.paralleluniverse.fibers.Suspendable
 import net.corda.bn.contracts.MembershipContract
-import net.corda.bn.states.MembershipIdentity
 import net.corda.bn.states.MembershipState
 import net.corda.bn.states.MembershipStatus
 import net.corda.core.flows.FinalityFlow
@@ -18,8 +17,8 @@ import java.util.*
 class CreateBusinessNetworkFlow : FlowLogic<SignedTransaction>() {
 
     private fun createMembershipRequest(): SignedTransaction {
-        val membership = MembershipState<Any, Any>(
-                identity = MembershipIdentity(ourIdentity, null),
+        val membership = MembershipState(
+                identity = ourIdentity,
                 networkId = UUID.randomUUID().toString(),
                 status = MembershipStatus.PENDING,
                 participants = listOf(ourIdentity)

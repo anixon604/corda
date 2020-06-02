@@ -21,7 +21,7 @@ import net.corda.core.utilities.unwrap
 
 @InitiatingFlow
 @StartableByRPC
-class ActivateMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
+class ActivateMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
 
     @Suspendable
     override fun call(): SignedTransaction {
@@ -33,7 +33,7 @@ class ActivateMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Sig
         // building transaction
         val builder = TransactionBuilder()
                 .addInputState(membership)
-                .addOutputState(membership.state.data.copy(status = MembershipStatus.ACTIVE))
+                .addOutputState(membership.state.data.copy(status = MembershipStatus.ACTIVE, modified = serviceHub.clock.instant()))
                 .addCommand(MembershipContract.Commands.Activate(), signers.map { it.owningKey })
         builder.verify(serviceHub)
 

@@ -12,11 +12,10 @@ import net.corda.core.schemas.QueryableState
 import java.time.Instant
 
 @BelongsToContract(MembershipContract::class)
-data class MembershipState<out I : Any, out R : Any>(
-        val identity: MembershipIdentity<I>,
+data class MembershipState(
+        val identity: Party,
         val networkId: String,
         val status: MembershipStatus,
-        val role: R? = null,
         val issued: Instant = Instant.now(),
         val modified: Instant = issued,
         override val linearId: UniqueIdentifier = UniqueIdentifier(),
@@ -25,7 +24,7 @@ data class MembershipState<out I : Any, out R : Any>(
 
     override fun generateMappedObject(schema: MappedSchema) = when (schema) {
         is MembershipStateSchemaV1 -> MembershipStateSchemaV1.PersistentMembershipState(
-                cordaIdentity = identity.cordaIdentity,
+                cordaIdentity = identity,
                 networkId = networkId,
                 status = status
         )
@@ -39,7 +38,5 @@ data class MembershipState<out I : Any, out R : Any>(
     fun isSuspended() = status == MembershipStatus.SUSPENDED
     fun isRevoked() = status == MembershipStatus.REVOKED
 }
-
-data class MembershipIdentity<out I : Any>(val cordaIdentity: Party, val additionalIdentity: I? = null)
 
 enum class MembershipStatus { PENDING, ACTIVE, SUSPENDED, REVOKED }

@@ -21,7 +21,7 @@ import net.corda.core.utilities.unwrap
 
 @InitiatingFlow
 @StartableByRPC
-class SuspendMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
+class SuspendMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
 
     @Suspendable
     override fun call(): SignedTransaction {
@@ -33,7 +33,7 @@ class SuspendMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Sign
         // building transaction
         val builder = TransactionBuilder()
                 .addInputState(membership)
-                .addOutputState(membership.state.data.copy(status = MembershipStatus.SUSPENDED))
+                .addOutputState(membership.state.data.copy(status = MembershipStatus.SUSPENDED, modified = serviceHub.clock.instant()))
                 .addCommand(MembershipContract.Commands.Suspend(), signers.map { it.owningKey })
         builder.verify(serviceHub)
 
