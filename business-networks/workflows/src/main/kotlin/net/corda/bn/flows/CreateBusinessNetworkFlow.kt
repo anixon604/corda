@@ -24,7 +24,7 @@ class CreateBusinessNetworkFlow : FlowLogic<SignedTransaction>() {
                 participants = listOf(ourIdentity)
         )
 
-        val builder = TransactionBuilder()
+        val builder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
                 .addOutputState(membership)
                 .addCommand(MembershipContract.Commands.Request(), ourIdentity.owningKey)
         builder.verify(serviceHub)
@@ -37,7 +37,7 @@ class CreateBusinessNetworkFlow : FlowLogic<SignedTransaction>() {
     override fun call(): SignedTransaction {
         val membership = createMembershipRequest().tx.outRefsOfType(MembershipState::class.java).single()
 
-        val builder = TransactionBuilder()
+        val builder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addOutputState(membership.state.data.copy(status = MembershipStatus.ACTIVE))
                 .addCommand(MembershipContract.Commands.Activate(), ourIdentity.owningKey)

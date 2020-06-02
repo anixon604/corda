@@ -30,16 +30,24 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLo
                 ?: throw FlowException("Membership state with $membershipId linear ID doesn't exist")
         val signers = requiredSigners()
 
+        // check whether party is authorised to initiate flow
+        val networkId = membership.state.data.networkId
+        val auth = BNUtils.loadBNMemberAuth()
+        val ourMembership = databaseService.getMembership(networkId, ourIdentity)?.state?.data
+                ?: throw FlowException("Initiator is not member of a business network")
+        if (!auth.canActivateMembership(ourMembership)) {
+            throw FlowException("Initiator is not authorised to run ${javaClass.name} flow")
+        }
+
         // building transaction
-        val builder = TransactionBuilder()
+        val builder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
                 .addInputState(membership)
                 .addOutputState(membership.state.data.copy(status = MembershipStatus.SUSPENDED, modified = serviceHub.clock.instant()))
                 .addCommand(MembershipContract.Commands.Suspend(), signers.map { it.owningKey })
         builder.verify(serviceHub)
 
         // send info to observers whether they need to sign the transaction
-        val networkId = membership.state.data.networkId
-        val observerSessions = databaseService.getMembersAuthorisedToModifyMembership(networkId).map { initiateFlow(it) }
+        val observerSessions = databaseService.getMembersAuthorisedToModifyMembership(networkId, auth).map { initiateFlow(it) }
         observerSessions.forEach { it.send(signers.contains(it.counterparty)) }
 
         // signing transaction
@@ -51,7 +59,7 @@ class SuspendMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLo
         return subFlow(FinalityFlow(allSignedTransaction, observerSessions))
     }
 
-    override fun requiredSigners(): List<Party> = emptyList()
+    override fun requiredSigners(): List<Party> = listOf(ourIdentity)
 }
 
 @InitiatedBy(SuspendMembershipFlow::class)

@@ -9,6 +9,7 @@ import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.QueryableState
+import net.corda.core.serialization.CordaSerializable
 import java.time.Instant
 
 @BelongsToContract(MembershipContract::class)
@@ -39,4 +40,5 @@ data class MembershipState(
     fun isRevoked() = status == MembershipStatus.REVOKED
 }
 
+@CordaSerializable
 enum class MembershipStatus { PENDING, ACTIVE, SUSPENDED, REVOKED }

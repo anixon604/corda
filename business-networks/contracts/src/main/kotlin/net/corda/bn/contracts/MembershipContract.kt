@@ -39,7 +39,7 @@ open class MembershipContract : Contract {
                 "Input and output state should have same Corda identity" using (inputState.identity == outputState.identity)
                 "Input and output state should have same network IDs" using (inputState.networkId == outputState.networkId)
                 "Input and output state should habe same issued timestamps" using (inputState.issued == outputState.issued)
-                "Output state's modified timestamp should be greater than input's" using (inputState.modified < outputState.modified)
+                "Output state's modified timestamp should be greater or equal than input's" using (inputState.modified <= outputState.modified)
                 "Modified timestamp should be greater or equal to issued timestamp" using (inputState.issued <= inputState.modified)
                 "Input and output state should have same linear IDs" using (inputState.linearId == outputState.linearId)
             }

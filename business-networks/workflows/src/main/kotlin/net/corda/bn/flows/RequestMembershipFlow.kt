@@ -25,6 +25,14 @@ class RequestMembershipFlow(private val authorisedParty: Party, private val netw
 
     @Suspendable
     override fun call(): SignedTransaction {
+        // check whether party is authorised to initiate flow
+        val auth = BNUtils.loadBNMemberAuth()
+        val databaseService = serviceHub.cordaService(DatabaseService::class.java)
+        val ourMembership = databaseService.getMembership(networkId, ourIdentity)?.state?.data
+        if (ourMembership != null && !auth.canRequestMembership(ourMembership)) {
+            throw FlowException("Initiator is not authorised to run ${javaClass.name} flow")
+        }
+
         // send request to authorised member
         val authorisedPartySession = initiateFlow(authorisedParty)
         authorisedPartySession.send(networkId)
@@ -58,9 +66,18 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : FlowLog
 
     @Suspendable
     override fun call() {
+        // receive network ID
         val networkId = session.receive<String>().unwrap { it }
-        val counterparty = session.counterparty
+
+        // check whether party is authorised to modify membership
+        val auth = BNUtils.loadBNMemberAuth()
         val databaseService = serviceHub.cordaService(DatabaseService::class.java)
+        val ourMembership = databaseService.getMembership(networkId, ourIdentity)?.state?.data
+        if (ourMembership != null && !auth.canRequestMembership(ourMembership)) {
+            throw FlowException("Receiver is not authorised to modify membership")
+        }
+
+        val counterparty = session.counterparty
         if (databaseService.getMembership(networkId, counterparty) != null) {
             throw FlowException("Membership already exists")
         }
@@ -72,7 +89,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : FlowLog
                 status = MembershipStatus.PENDING,
                 participants = listOf()
         )
-        val builder = TransactionBuilder()
+        val builder = TransactionBuilder(serviceHub.networkMapCache.notaryIdentities.first())
                 .addOutputState(membershipState)
                 .addCommand(MembershipContract.Commands.Request(), counterparty.owningKey)
         builder.verify(serviceHub)
@@ -82,7 +99,7 @@ class RequestMembershipFlowResponder(private val session: FlowSession) : FlowLog
         val allSignedTransaction = subFlow(CollectSignaturesFlow(selfSignedTransaction, listOf(session)))
 
         // finalise transaction
-        val observerSessions = databaseService.getMembersAuthorisedToModifyMembershipStatus(networkId).map { initiateFlow(it) }.toSet()
+        val observerSessions = databaseService.getMembersAuthorisedToModifyMembership(networkId, auth).map { initiateFlow(it) }.toSet()
         subFlow(FinalityFlow(allSignedTransaction, observerSessions + session))
     }
 }

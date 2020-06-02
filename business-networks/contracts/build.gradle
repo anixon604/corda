@@ -28,7 +28,7 @@ dependencies {
 }
 
 jar {
-    baseName 'corda-confidential-identities'
+    baseName 'corda-business-network-contracts'
 }
 
 publish {

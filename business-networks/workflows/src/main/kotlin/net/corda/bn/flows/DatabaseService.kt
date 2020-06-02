@@ -1,5 +1,6 @@
 package net.corda.bn.flows
 
+import net.corda.bn.flows.extensions.BNMemberAuth
 import net.corda.bn.schemas.MembershipStateSchemaV1
 import net.corda.bn.states.MembershipState
 import net.corda.core.contracts.StateAndRef
@@ -31,11 +32,18 @@ class DatabaseService(private val serviceHub: ServiceHub) : SingletonSerializeAs
         return states.maxBy { it.state.data.modified }
     }
 
-    fun getMembersAuthorisedToActivateMembership(networkId: String): List<Party> = emptyList()
+    fun getAllMemberships(networkId: String): List<StateAndRef<MembershipState>> {
+        val criteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+                .and(networkIdCriteria(networkId))
+        return serviceHub.vaultService.queryBy<MembershipState>(criteria).states
+    }
 
-    fun getMembersAuthorisedToModifyMembershipStatus(networkId: String): List<Party> = emptyList()
-
-    fun getMembersAuthorisedToModifyMembership(networkId: String): List<Party> = emptyList()
+    fun getMembersAuthorisedToModifyMembership(networkId: String, auth: BNMemberAuth): List<Party> = getAllMemberships(networkId).filter {
+        val membership = it.state.data
+        auth.run { canActivateMembership(membership) || canSuspendMembership(membership) || canRevokeMembership(membership) }
+    }.map {
+        it.state.data.identity
+    }
 
     private fun networkIdCriteria(networkID: String) = QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::networkId.equal(networkID) })
     private fun identityCriteria(cordaIdentity: Party) = QueryCriteria.VaultCustomQueryCriteria(builder { MembershipStateSchemaV1.PersistentMembershipState::cordaIdentity.equal(cordaIdentity) })
