@@ -62,7 +62,7 @@ class RequestMembershipFlowResponder(val session: FlowSession) : FlowLogic<Unit>
         val networkId = session.receive<String>().unwrap { it }
         val counterparty = session.counterparty
         val databaseService = serviceHub.cordaService(DatabaseService::class.java)
-        if (databaseService.getMembership(counterparty, networkId) != null) {
+        if (databaseService.getMembership(networkId, counterparty) != null) {
             throw FlowException("Membership already exists")
         }
 

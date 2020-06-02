@@ -27,6 +27,7 @@ class RevokeMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Signe
     override fun call(): SignedTransaction {
         val databaseService = serviceHub.cordaService(DatabaseService::class.java)
         val membership = databaseService.getMembership(membershipId)
+                ?: throw FlowException("Membership state with $membershipId linear ID doesn't exist")
         val signers = requiredSigners()
 
         // building transaction
