@@ -21,7 +21,7 @@ import net.corda.core.utilities.unwrap
 
 @InitiatingFlow
 @StartableByRPC
-class ActivateMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
+class RevokeMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<SignedTransaction>(), MembershipManagementFlow {
 
     @Suspendable
     override fun call(): SignedTransaction {
@@ -32,8 +32,8 @@ class ActivateMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Sig
         // building transaction
         val builder = TransactionBuilder()
                 .addInputState(membership)
-                .addOutputState(membership.state.data.copy(status = MembershipStatus.ACTIVE))
-                .addCommand(MembershipContract.Commands.Activate(), signers.map { it.owningKey })
+                .addOutputState(membership.state.data.copy(status = MembershipStatus.REVOKED))
+                .addCommand(MembershipContract.Commands.Revoke(), signers.map { it.owningKey })
         builder.verify(serviceHub)
 
         // send info to observers whether they need to sign the transaction
@@ -53,8 +53,8 @@ class ActivateMembershipFlow(val membershipId: UniqueIdentifier) : FlowLogic<Sig
     override fun requiredSigners(): List<Party> = emptyList()
 }
 
-@InitiatedBy(ActivateMembershipFlow::class)
-class ActivateMembershipResponerFlow(val session: FlowSession) : FlowLogic<Unit>() {
+@InitiatedBy(RevokeMembershipFlow::class)
+class RevokeMembershipFlowResponder(val session: FlowSession) : FlowLogic<Unit>() {
 
     @Suspendable
     override fun call() {
@@ -64,8 +64,8 @@ class ActivateMembershipResponerFlow(val session: FlowSession) : FlowLogic<Unit>
             val signResponder = object : SignTransactionFlow(session) {
                 override fun checkTransaction(stx: SignedTransaction) {
                     val command = stx.tx.commands.single()
-                    if (command.value !is MembershipContract.Commands.Activate) {
-                        throw FlowException("Only Activate command is allowed")
+                    if (command.value !is MembershipContract.Commands.Revoke) {
+                        throw FlowException("Only Revoke command is allowed")
                     }
 
                     stx.toLedgerTransaction(serviceHub, false).verify()
