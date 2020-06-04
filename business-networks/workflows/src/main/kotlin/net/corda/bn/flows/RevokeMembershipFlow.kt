@@ -47,7 +47,8 @@ class RevokeMembershipFlow(private val membershipId: UniqueIdentifier) : FlowLog
         builder.verify(serviceHub)
 
         // send info to observers whether they need to sign the transaction
-        val observerSessions = databaseService.getMembersAuthorisedToModifyMembership(networkId, auth).map { initiateFlow(it) }
+        val observers = databaseService.getMembersAuthorisedToModifyMembership(networkId, auth) - ourIdentity
+        val observerSessions = observers.map { initiateFlow(it) }
         observerSessions.forEach { it.send(signers.contains(it.counterparty)) }
 
         // signing transaction

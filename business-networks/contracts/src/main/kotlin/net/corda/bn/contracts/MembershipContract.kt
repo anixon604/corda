@@ -38,7 +38,7 @@ open class MembershipContract : Contract {
                 "Input state has to be validated by ${contractName()}" using (input.state.contract == contractName())
                 "Input and output state should have same Corda identity" using (inputState.identity == outputState.identity)
                 "Input and output state should have same network IDs" using (inputState.networkId == outputState.networkId)
-                "Input and output state should habe same issued timestamps" using (inputState.issued == outputState.issued)
+                "Input and output state should have same issued timestamps" using (inputState.issued == outputState.issued)
                 "Output state's modified timestamp should be greater or equal than input's" using (inputState.modified <= outputState.modified)
                 "Modified timestamp should be greater or equal to issued timestamp" using (inputState.issued <= inputState.modified)
                 "Input and output state should have same linear IDs" using (inputState.linearId == outputState.linearId)
@@ -70,8 +70,8 @@ open class MembershipContract : Contract {
         "Input state of membership activation transaction shouldn't be already active" using (!inputMembership.isActive())
         "Input state of membership activation transaction shouldn't be revoked" using (!inputMembership.isRevoked())
         "Output state of membership activation transaction should be active" using (outputMembership.isActive())
-        "Input and output state of membership activation transaction should only have different status field" using (
-                inputMembership.copy(status = MembershipStatus.ACTIVE) == outputMembership)
+        "Input and output state of membership activation transaction should only have different status and modified timestamp field" using (
+                inputMembership.copy(status = MembershipStatus.ACTIVE, modified = outputMembership.modified) == outputMembership)
     }
 
     open fun verifySuspend(
@@ -83,8 +83,8 @@ open class MembershipContract : Contract {
         "Input state of membership suspension transaction shouldn't be already suspended" using (!inputMembership.isSuspended())
         "Input state of membership suspension transaction shouldn't be revoked" using (!inputMembership.isRevoked())
         "Output state of membership suspension transaction should be suspended" using (outputMembership.isSuspended())
-        "Input and output state of membership suspension transaction should only have different status field" using (
-                inputMembership.copy(status = MembershipStatus.SUSPENDED) == outputMembership)
+        "Input and output state of membership suspension transaction should only have different status and modified timestamp field" using (
+                inputMembership.copy(status = MembershipStatus.SUSPENDED, modified = outputMembership.modified) == outputMembership)
     }
 
     open fun verifyRevoke(
@@ -95,7 +95,7 @@ open class MembershipContract : Contract {
     ) = requireThat {
         "Input state of membership revocation transaction shouldn't be already revoked" using (!inputMembership.isRevoked())
         "Output state of membership revocation transaction should be revoked" using (outputMembership.isRevoked())
-        "Input and output state of membership revocation transaction should only have different status field" using (
-                inputMembership.copy(status = MembershipStatus.REVOKED) == outputMembership)
+        "Input and output state of membership revocation transaction should only have different status and modified timestamp field" using (
+                inputMembership.copy(status = MembershipStatus.REVOKED, modified = outputMembership.modified) == outputMembership)
     }
 }
